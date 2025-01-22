@@ -13,7 +13,6 @@
 #include "tensorflow/cc/framework/gradients.h"
 #include "tensorflow/core/public/session_options.h"
 
-
 // gnuplot-iostream for plotting
 #include "gnuplot-iostream.h"
 
@@ -21,11 +20,13 @@ static const int SAMPLES = 1000;
 static const double PI = 3.14159265358979323846;
 
 // Shuffle helper
-template<typename T>
-void shuffle_in_unison(std::vector<T>& a, std::vector<T>& b) {
+template <typename T>
+void shuffle_in_unison(std::vector<T> &a, std::vector<T> &b)
+{
     static std::random_device rd;
     static std::mt19937 g(rd());
-    for (size_t i = a.size() - 1; i > 0; --i) {
+    for (size_t i = a.size() - 1; i > 0; --i)
+    {
         std::uniform_int_distribution<size_t> distrib(0, i);
         size_t j = distrib(g);
         std::swap(a[i], a[j]);
@@ -35,29 +36,34 @@ void shuffle_in_unison(std::vector<T>& a, std::vector<T>& b) {
 
 // Template plot functio
 
-void plotDoubles(Gnuplot& gp, const std::vector<std::pair<double, double>> data, const std::string& title) {
+void plotDoubles(Gnuplot &gp, const std::vector<std::pair<double, double>> data, const std::string &title)
+{
     gp << "plot '-' with points title '" << title << "'\n";
     gp.send1d(data);
 }
 
-void plotXY(Gnuplot& gp, const std::vector<float> x, const std::vector<float> y, const std::string& title) {
+void plotXY(Gnuplot &gp, const std::vector<float> x, const std::vector<float> y, const std::string &title)
+{
     std::vector<std::pair<double, double>> data;
-    for (int i = 0; i < x.size(); ++i) {
+    for (int i = 0; i < x.size(); ++i)
+    {
         data.push_back({static_cast<double>(x[i]), (double)y[i]});
     }
     plotDoubles(gp, data, title);
 }
 
-int main() {
+int main()
+{
     Gnuplot gp;
 
     // 1) Generate data
     std::vector<float> x_values(SAMPLES), y_values(SAMPLES);
-    
+
     {
         std::mt19937 gen(1337);
         std::uniform_real_distribution<float> dist(0.0f, 2.0f * static_cast<float>(PI));
-        for (int i = 0; i < SAMPLES; ++i) {
+        for (int i = 0; i < SAMPLES; ++i)
+        {
             float x = dist(gen);
             x_values[i] = x;
             y_values[i] = std::sin(x);
@@ -66,15 +72,13 @@ int main() {
 
     shuffle_in_unison(x_values, y_values);
 
-
     std::vector<std::pair<double, double>> sin_data;
-    for (int i = 0; i < SAMPLES; ++i) {
+    for (int i = 0; i < SAMPLES; ++i)
+    {
         sin_data.push_back({x_values[i], y_values[i]});
     }
 
     // plotDoubles(gp,sin_data, std::string("sin(x)"));
-
-
 
     // Splits
     int TRAIN_SPLIT = static_cast<int>(0.6f * SAMPLES);
@@ -114,10 +118,12 @@ int main() {
     std::mt19937 rng(42);
     std::uniform_real_distribution<float> urand(-0.1f, 0.1f);
 
-    auto create_random_tensor = [&](const std::vector<int64_t>& shape) {
+    auto create_random_tensor = [&](const std::vector<int64_t> &shape)
+    {
         Tensor t(DT_FLOAT, TensorShape(shape));
         auto flat = t.flat<float>();
-        for (int i = 0; i < flat.size(); ++i) {
+        for (int i = 0; i < flat.size(); ++i)
+        {
             flat(i) = urand(rng);
         }
         return t;
@@ -143,17 +149,17 @@ int main() {
     auto output = Add(root, MatMul(root, hidden, W2), b2);
 
     // Loss
-    //Tensor reduction_indices_tensor(DT_INT32, TensorShape({1}));
-    //reduction_indices_tensor.vec<int32>()(0) = 0;
-    //auto reduction_indices = Const(root, reduction_indices_tensor);
+    // Tensor reduction_indices_tensor(DT_INT32, TensorShape({1}));
+    // reduction_indices_tensor.vec<int32>()(0) = 0;
+    // auto reduction_indices = Const(root, reduction_indices_tensor);
     auto diff = Sub(root, output, Y);
     auto sq = Square(root, diff);
     auto loss = Mean(root.WithOpName("loss"), sq, 0 /*reduction_indices*/);
 
     // Compute gradients
     std::vector<Output> grad_outputs;
-    TF_CHECK_OK(AddSymbolicGradients(root, {loss}, {Output(W1), Output(b1), Output(W2), Output(b2),Output(W3),Output(b3)}, &grad_outputs));
-    
+    TF_CHECK_OK(AddSymbolicGradients(root, {loss}, {Output(W1), Output(b1), Output(W2), Output(b2), Output(W3), Output(b3)}, &grad_outputs));
+
     // Optimizer
     float learning_rate = 0.01f;
     auto apply_W1 = ApplyGradientDescent(root.WithOpName("apply_W1"), W1_handle, learning_rate, grad_outputs[0]);
@@ -165,31 +171,33 @@ int main() {
 
     // Create session and initialize variables
     ClientSession session(root);
-    std::vector<Operation> init_ops = {W1_init, b1_init, W2_init, b2_init,W3_init,b3_init};
+    std::vector<Operation> init_ops = {W1_init, b1_init, W2_init, b2_init, W3_init, b3_init};
     TF_CHECK_OK(session.Run({}, {}, init_ops, nullptr));
-
 
     // Training loop
     const int EPOCHS = 500;
     const int BATCH_SIZE = 16;
     int train_size = static_cast<int>(x_train.size());
 
-    for (int epoch = 0; epoch < EPOCHS; ++epoch) {
+    for (int epoch = 0; epoch < EPOCHS; ++epoch)
+    {
         float epoch_loss = 0.0f;
         int batches = 0;
 
-        for (int start = 0; start < train_size; start += BATCH_SIZE) {
+        for (int start = 0; start < train_size; start += BATCH_SIZE)
+        {
             int end = std::min(start + BATCH_SIZE, train_size);
             int cur_batch_size = end - start;
 
             // Prepare batch data
             Tensor x_batch(DT_FLOAT, TensorShape({cur_batch_size, 1}));
             Tensor y_batch(DT_FLOAT, TensorShape({cur_batch_size, 1}));
-            
+
             auto x_flat = x_batch.flat<float>();
             auto y_flat = y_batch.flat<float>();
-            
-            for (int i = 0; i < cur_batch_size; ++i) {
+
+            for (int i = 0; i < cur_batch_size; ++i)
+            {
                 x_flat(i) = x_train[start + i];
                 y_flat(i) = y_train[start + i];
             }
@@ -197,28 +205,24 @@ int main() {
             // Run training step
             std::vector<std::pair<string, Tensor>> inputs = {{"X", x_batch}, {"Y", y_batch}};
             std::vector<Output> fetch_outputs = {loss};
-            //std::vector<Operation> train_ops{apply_W1, apply_b1, apply_W2, apply_b2,apply_W3,apply_b3};
-            std::vector<Operation> train_ops{{grad_outputs[0],grad_outputs[1],grad_outputs[2],grad_outputs[3],grad_outputs[4],grad_outputs[5]}};
+            // std::vector<Operation> train_ops{apply_W1, apply_b1, apply_W2, apply_b2,apply_W3,apply_b3};
+            // std::vector<Operation> train_ops{{grad_outputs[0], grad_outputs[1], grad_outputs[2], grad_outputs[3], grad_outputs[4], grad_outputs[5]}};
 
-            //train_ops.push_back(apply_W1);
-            //train_ops.push_back(apply_b1);
-            //train_ops.push_back(apply_W2);
-            //train_ops.push_back(apply_b2);
             std::vector<Tensor> out_tensors;
 
             tensorflow::RunOptions run_options;
-            //TF_CHECK_OK(session.Run(run_options, inputs, fetch_outputs, train_ops, &out_tensors, nullptr));
+            // TF_CHECK_OK(session.Run(run_options, inputs, fetch_outputs, train_ops, &out_tensors, nullptr));
 
-            // candidate: ‘tsl::Status tensorflow::ClientSession::Run(const tensorflow::RunOptions&, 
-            //const FeedType&, 
-            // const std::vector<tensorflow::Output>&, 
+            // candidate: ‘tsl::Status tensorflow::ClientSession::Run(const tensorflow::RunOptions&,
+            // const FeedType&,
+            // const std::vector<tensorflow::Output>&,
             // const std::vector<tensorflow::Operation>&, s
             // std::vector<tensorflow::Tensor>*, tensorflow::RunMetadata*) const’
             tensorflow::RunMetadata run_metadata;
-            // ‘tsl::Status tensorflow::ClientSession::Run(const tensorflow::RunOptions&, 
-            //const FeedType&, const std::vector<tensorflow::Output>&,
+            // ‘tsl::Status tensorflow::ClientSession::Run(const tensorflow::RunOptions&,
+            // const FeedType&, const std::vector<tensorflow::Output>&,
             //  const std::vector<tensorflow::Operation>&, std::vector<tensorflow::Tensor>*, tensorflow::RunMetadata*) const’
-            TF_CHECK_OK(session.Run(run_options,fetch_outputs, inputs, train_ops, &out_tensors, &run_metadata));
+            // TF_CHECK_OK(session.Run(run_options,fetch_outputs, inputs, train_ops, &out_tensors, &run_metadata));
 
             float batch_loss = out_tensors[0].scalar<float>()();
             epoch_loss += batch_loss;
@@ -226,7 +230,8 @@ int main() {
         }
 
         epoch_loss /= batches;
-        if ((epoch + 1) % 50 == 0) {
+        if ((epoch + 1) % 50 == 0)
+        {
             std::cout << "Epoch " << (epoch + 1) << " - Loss: " << epoch_loss << std::endl;
         }
     }
@@ -235,11 +240,12 @@ int main() {
     int test_size = static_cast<int>(x_test.size());
     Tensor x_test_t(DT_FLOAT, TensorShape({test_size, 1}));
     Tensor y_test_t(DT_FLOAT, TensorShape({test_size, 1}));
-    
+
     auto x_test_flat = x_test_t.flat<float>();
     auto y_test_flat = y_test_t.flat<float>();
-    
-    for (int i = 0; i < test_size; ++i) {
+
+    for (int i = 0; i < test_size; ++i)
+    {
         x_test_flat(i) = x_test[i];
         y_test_flat(i) = y_test[i];
     }
@@ -247,23 +253,24 @@ int main() {
     std::vector<std::pair<string, Tensor>> test_inputs = {{"X", x_test_t}, {"Y", y_test_t}};
     std::vector<Output> test_fetch = {loss};
     std::vector<Tensor> test_outputs;
-    
+
     // TF_CHECK_OK(session.Run(test_inputs, test_fetch, {}, &test_outputs));
-    
+
     float test_loss = test_outputs[0].scalar<float>()();
     std::cout << "Test Loss = " << test_loss << std::endl;
 
     // Generate predictions for plotting
     std::vector<std::pair<double, double>> original_data;
     std::vector<std::pair<double, double>> predicted_data;
-    
+
     int N_PLOT = 200;
     double step = 2.0 * PI / (N_PLOT - 1);
-    
+
     Tensor x_plot(DT_FLOAT, TensorShape({N_PLOT, 1}));
     auto x_plot_flat = x_plot.flat<float>();
-    
-    for (int i = 0; i < N_PLOT; ++i) {
+
+    for (int i = 0; i < N_PLOT; ++i)
+    {
         double x = i * step;
         original_data.push_back({x, std::sin(x)});
         x_plot_flat(i) = static_cast<float>(x);
@@ -272,17 +279,18 @@ int main() {
     std::vector<std::pair<string, Tensor>> plot_inputs = {{"X", x_plot}};
     std::vector<Output> plot_fetch = {output};
     std::vector<Tensor> pred_outputs;
-    
+
     tensorflow::RunOptions eval_options;
     // TF_CHECK_OK(session.Run(eval_options,plot_inputs, plot_fetch, {}, &pred_outputs));
-    
+
     auto pred_flat = pred_outputs[0].flat<float>();
-    for (int i = 0; i < N_PLOT; ++i) {
+    for (int i = 0; i < N_PLOT; ++i)
+    {
         predicted_data.push_back({original_data[i].first, pred_flat(i)});
     }
 
     // Plot results
-    
+
     gp << "set title 'Sine function approximation'\n";
     gp << "plot '-' with points title 'Original sin(x)', "
           "'-' with lines title 'NN Prediction'\n";

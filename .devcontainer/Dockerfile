@@ -28,7 +28,7 @@ USER ${USER_NAME}
 WORKDIR /home/${USER_NAME}
 
 # Clone the gnuplot-iostream repository
-RUN git clone https://github.com/dstahlke/gnuplot-iostream.git
+#RUN git clone https://github.com/dstahlke/gnuplot-iostream.git
 
 # Build gnuplot-iostream examples (optional)
 #WORKDIR /home/${USER_NAME}/gnuplot-iostream
