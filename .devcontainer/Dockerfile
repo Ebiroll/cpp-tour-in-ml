@@ -2,8 +2,8 @@
 FROM tensorflow/tensorflow:2.17.0
 
 # Set build arguments for user ID and username
-ARG USER_ID
-ARG USER_NAME
+ARG USER_ID=1000
+ARG USER_NAME=defaultuser
 
 # Install necessary packages
 RUN apt-get update && apt-get install -y \
@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Add a user with the specified UID and username
-RUN useradd -m -u ${USER_ID} -s /bin/bash ${USER_NAME} && \
+RUN useradd --no-log-init -m -u ${USER_ID} -s /bin/bash ${USER_NAME} && \
     echo "${USER_NAME} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 # Switch to the new user
