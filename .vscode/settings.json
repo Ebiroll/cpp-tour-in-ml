@@ -1,0 +1,10 @@
+{
+    "C_Cpp.default.cppStandard": "c++17",
+    "C_Cpp.default.includePath": [
+        "${workspaceFolder}/**",
+        "tensorflow/bazel-bin/tensorflow/include"
+    ],
+    "C_Cpp.default.defines": [],
+    "C_Cpp.intelliSenseEngine": "Default",
+    "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json"
+}
