@@ -1,27 +1,26 @@
 
 Steps to build tensorflow and this example
 
-git submodule uodate --init --recursive
+git submodule update --init --recursive
+
+# Run in codespace
+I have set up the dockefile so that it should run in github codespaces
 
 
 # Another option
-I never tried this, but this like a reasonable path forward.
+I never tried this, but this like another reasonable path forward.
 
 https://github.com/FloopCZ/tensorflow_cc
 
 
 # Steps to build
 
+This is not necessary if you cloned the submodule
 Clone the TensorFlow Repository:
 
     git clone https://github.com/tensorflow/tensorflow/
 
 
-Check out 2.18:
-
-    I tried newer versions first but this worked for me on Ubuntu 22.04 after
-    sudo apt-get install g++-12 (You probably do not need this step. it was for headers, clang was used to compile tensorflow)
-    git checkout -b v2.18.0 
 
 Install dependencies:
     sudo apt-get install build-essential cmake git curl zip unzip autoconf automake libtool  gcc g++
@@ -42,7 +41,6 @@ Build library
     Executed the Bazel build command to compile the TensorFlow C++ library:
 
 bazel build --config=opt //tensorflow:libtensorflow_cc.so
-
 
 
 
@@ -73,7 +71,8 @@ As I had conda installed
 
 
 # Never to early to give up,
-Never got it to work so I switched to a Dockerfile
+
+Never got it to work so I switched to using a Dockerfile
 
 docker build --build-arg USER_ID=$(id -u) --build-arg USER_NAME=$(whoami) -t tensorflow_cpp_env .
 
@@ -97,9 +96,12 @@ Inspired by this article,
 
 https://www.codeproject.com/Articles/1237026/Simple-MLP-Backpropagation-Artificial-Neural-Netwo
 
+sin/bare_metal.cpp
+
+It uses simple toy-example gradient descent
 
 
-'''
+```
      	Input Layer      	Hidden Layer (N neurons)        	Output Layer
      	┌─────────┐      	 ┌────────────────────────┐      	┌──────────┐
      	│     	  │      	│                    	  │      	│      	   │
@@ -114,4 +116,14 @@ https://www.codeproject.com/Articles/1237026/Simple-MLP-Backpropagation-Artifici
      	│     	  │  W[N-1] │  c[N-1] + W[N-1]*x 	  │  V[N-1] │      	   │
      	│     	  ├──────────► (sigmoid activation)   ├──────────►         │
      	└─────────┘      	└────────────────────────┘      	└──────────┘
-'''
+```
+
+# label_image
+
+Example from tensorflow codebase, it has its own Readme
+
+# eigen 
+
+eigen/simple_nn.cpp
+
+Simple backpropagation network using Eigen
