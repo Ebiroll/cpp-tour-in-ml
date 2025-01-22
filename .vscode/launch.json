@@ -5,7 +5,7 @@
             "name": "Debug C++",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/TF_Sine_Example",
+            "program": "${workspaceFolder}/build/tf_sine_example",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

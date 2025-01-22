@@ -60,11 +60,6 @@ limitations under the License.
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow/core/util/command_line_flags.h"
-
-// gnuplot-iostream for plotting
-#include "gnuplot-iostream.h"
-
-
 // These are all common classes it's handy to reference with no namespace.
 using tensorflow::Flag;
 using tensorflow::int32;
@@ -76,28 +71,33 @@ using tensorflow::tstring;
 // Takes a file name, and loads a list of labels from it, one per line, and
 // returns a vector of the strings. It pads with empty strings so the length
 // of the result is a multiple of 16, because our model expects that.
-Status ReadLabelsFile(const string& file_name, std::vector<string>* result,
-                      size_t* found_label_count) {
+Status ReadLabelsFile(const string &file_name, std::vector<string> *result,
+                      size_t *found_label_count)
+{
   std::ifstream file(file_name);
-  if (!file) {
+  if (!file)
+  {
     return tensorflow::errors::NotFound("Labels file ", file_name,
                                         " not found.");
   }
   result->clear();
   string line;
-  while (std::getline(file, line)) {
+  while (std::getline(file, line))
+  {
     result->push_back(line);
   }
   *found_label_count = result->size();
   const int padding = 16;
-  while (result->size() % padding) {
+  while (result->size() % padding)
+  {
     result->emplace_back();
   }
   return ::tensorflow::OkStatus();
 }
 
-static Status ReadEntireFile(tensorflow::Env* env, const string& filename,
-                             Tensor* output) {
+static Status ReadEntireFile(tensorflow::Env *env, const string &filename,
+                             Tensor *output)
+{
   tensorflow::uint64 file_size = 0;
   TF_RETURN_IF_ERROR(env->GetFileSize(filename, &file_size));
 
@@ -109,7 +109,8 @@ static Status ReadEntireFile(tensorflow::Env* env, const string& filename,
 
   tensorflow::StringPiece data;
   TF_RETURN_IF_ERROR(file->Read(0, file_size, &data, &(contents)[0]));
-  if (data.size() != file_size) {
+  if (data.size() != file_size)
+  {
     return tensorflow::errors::DataLoss("Truncated read of '", filename,
                                         "' expected ", file_size, " got ",
                                         data.size());
@@ -120,12 +121,13 @@ static Status ReadEntireFile(tensorflow::Env* env, const string& filename,
 
 // Given an image file name, read in the data, try to decode it as an image,
 // resize it to the requested size, and then scale the values as desired.
-Status ReadTensorFromImageFile(const string& file_name, const int input_height,
+Status ReadTensorFromImageFile(const string &file_name, const int input_height,
                                const int input_width, const float input_mean,
                                const float input_std,
-                               std::vector<Tensor>* out_tensors) {
+                               std::vector<Tensor> *out_tensors)
+{
   auto root = tensorflow::Scope::NewRootScope();
-  using namespace ::tensorflow::ops;  // NOLINT(build/namespaces)
+  using namespace ::tensorflow::ops; // NOLINT(build/namespaces)
 
   string input_name = "file_reader";
   string output_name = "normalized";
@@ -146,17 +148,24 @@ Status ReadTensorFromImageFile(const string& file_name, const int input_height,
   // Now try to figure out what kind of file it is and decode it.
   const int wanted_channels = 3;
   tensorflow::Output image_reader;
-  if (tensorflow::str_util::EndsWith(file_name, ".png")) {
+  if (tensorflow::str_util::EndsWith(file_name, ".png"))
+  {
     image_reader = DecodePng(root.WithOpName("png_reader"), file_reader,
                              DecodePng::Channels(wanted_channels));
-  } else if (tensorflow::str_util::EndsWith(file_name, ".gif")) {
+  }
+  else if (tensorflow::str_util::EndsWith(file_name, ".gif"))
+  {
     // gif decoder returns 4-D tensor, remove the first dim
     image_reader =
         Squeeze(root.WithOpName("squeeze_first_dim"),
                 DecodeGif(root.WithOpName("gif_reader"), file_reader));
-  } else if (tensorflow::str_util::EndsWith(file_name, ".bmp")) {
+  }
+  else if (tensorflow::str_util::EndsWith(file_name, ".bmp"))
+  {
     image_reader = DecodeBmp(root.WithOpName("bmp_reader"), file_reader);
-  } else {
+  }
+  else
+  {
     // Assume if it's neither a PNG nor a GIF then it must be a JPEG.
     image_reader = DecodeJpeg(root.WithOpName("jpeg_reader"), file_reader,
                               DecodeJpeg::Channels(wanted_channels));
@@ -191,18 +200,21 @@ Status ReadTensorFromImageFile(const string& file_name, const int input_height,
 
 // Reads a model graph definition from disk, and creates a session object you
 // can use to run it.
-Status LoadGraph(const string& graph_file_name,
-                 std::unique_ptr<tensorflow::Session>* session) {
+Status LoadGraph(const string &graph_file_name,
+                 std::unique_ptr<tensorflow::Session> *session)
+{
   tensorflow::GraphDef graph_def;
   Status load_graph_status =
       ReadBinaryProto(tensorflow::Env::Default(), graph_file_name, &graph_def);
-  if (!load_graph_status.ok()) {
+  if (!load_graph_status.ok())
+  {
     return tensorflow::errors::NotFound("Failed to load compute graph at '",
                                         graph_file_name, "'");
   }
   session->reset(tensorflow::NewSession(tensorflow::SessionOptions()));
   Status session_create_status = (*session)->Create(graph_def);
-  if (!session_create_status.ok()) {
+  if (!session_create_status.ok())
+  {
     return session_create_status;
   }
   return ::tensorflow::OkStatus();
@@ -210,10 +222,11 @@ Status LoadGraph(const string& graph_file_name,
 
 // Analyzes the output of the Inception graph to retrieve the highest scores and
 // their positions in the tensor, which correspond to categories.
-Status GetTopLabels(const std::vector<Tensor>& outputs, int how_many_labels,
-                    Tensor* indices, Tensor* scores) {
+Status GetTopLabels(const std::vector<Tensor> &outputs, int how_many_labels,
+                    Tensor *indices, Tensor *scores)
+{
   auto root = tensorflow::Scope::NewRootScope();
-  using namespace ::tensorflow::ops;  // NOLINT(build/namespaces)
+  using namespace ::tensorflow::ops; // NOLINT(build/namespaces)
 
   string output_name = "top_k";
   TopK top_k(root.WithOpName(output_name), outputs[0], how_many_labels);
@@ -237,13 +250,15 @@ Status GetTopLabels(const std::vector<Tensor>& outputs, int how_many_labels,
 
 // Given the output of a model run, and the name of a file containing the labels
 // this prints out the top five highest-scoring values.
-Status PrintTopLabels(const std::vector<Tensor>& outputs,
-                      const string& labels_file_name) {
+Status PrintTopLabels(const std::vector<Tensor> &outputs,
+                      const string &labels_file_name)
+{
   std::vector<string> labels;
   size_t label_count;
   Status read_labels_status =
       ReadLabelsFile(labels_file_name, &labels, &label_count);
-  if (!read_labels_status.ok()) {
+  if (!read_labels_status.ok())
+  {
     LOG(ERROR) << read_labels_status;
     return read_labels_status;
   }
@@ -253,7 +268,8 @@ Status PrintTopLabels(const std::vector<Tensor>& outputs,
   TF_RETURN_IF_ERROR(GetTopLabels(outputs, how_many_labels, &indices, &scores));
   tensorflow::TTypes<float>::Flat scores_flat = scores.flat<float>();
   tensorflow::TTypes<int32>::Flat indices_flat = indices.flat<int32>();
-  for (int pos = 0; pos < how_many_labels; ++pos) {
+  for (int pos = 0; pos < how_many_labels; ++pos)
+  {
     const int label_index = indices_flat(pos);
     const float score = scores_flat(pos);
     LOG(INFO) << labels[label_index] << " (" << label_index << "): " << score;
@@ -263,25 +279,30 @@ Status PrintTopLabels(const std::vector<Tensor>& outputs,
 
 // This is a testing function that returns whether the top label index is the
 // one that's expected.
-Status CheckTopLabel(const std::vector<Tensor>& outputs, int expected,
-                     bool* is_expected) {
+Status CheckTopLabel(const std::vector<Tensor> &outputs, int expected,
+                     bool *is_expected)
+{
   *is_expected = false;
   Tensor indices;
   Tensor scores;
   const int how_many_labels = 1;
   TF_RETURN_IF_ERROR(GetTopLabels(outputs, how_many_labels, &indices, &scores));
   tensorflow::TTypes<int32>::Flat indices_flat = indices.flat<int32>();
-  if (indices_flat(0) != expected) {
+  if (indices_flat(0) != expected)
+  {
     LOG(ERROR) << "Expected label #" << expected << " but got #"
                << indices_flat(0);
     *is_expected = false;
-  } else {
+  }
+  else
+  {
     *is_expected = true;
   }
   return ::tensorflow::OkStatus();
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[])
+{
   // These are the command-line flags the program can understand.
   // They define where the graph and input data is located, and what kind of
   // input the model expects. If you train your own model, or use something
@@ -316,15 +337,18 @@ int main(int argc, char* argv[]) {
   };
   string usage = tensorflow::Flags::Usage(argv[0], flag_list);
   const bool parse_result = tensorflow::Flags::Parse(&argc, argv, flag_list);
-  if (!parse_result) {
+  if (!parse_result)
+  {
     LOG(ERROR) << usage;
     return -1;
   }
 
   // We need to call this to set up global state for TensorFlow.
   tensorflow::port::InitMain(argv[0], &argc, &argv);
-  if (argc > 1) {
-    LOG(ERROR) << "Unknown argument " << argv[1] << "\n" << usage;
+  if (argc > 1)
+  {
+    LOG(ERROR) << "Unknown argument " << argv[1] << "\n"
+               << usage;
     return -1;
   }
 
@@ -332,7 +356,8 @@ int main(int argc, char* argv[]) {
   std::unique_ptr<tensorflow::Session> session;
   string graph_path = tensorflow::io::JoinPath(root_dir, graph);
   Status load_graph_status = LoadGraph(graph_path, &session);
-  if (!load_graph_status.ok()) {
+  if (!load_graph_status.ok())
+  {
     LOG(ERROR) << load_graph_status;
     return -1;
   }
@@ -344,17 +369,19 @@ int main(int argc, char* argv[]) {
   Status read_tensor_status =
       ReadTensorFromImageFile(image_path, input_height, input_width, input_mean,
                               input_std, &resized_tensors);
-  if (!read_tensor_status.ok()) {
+  if (!read_tensor_status.ok())
+  {
     LOG(ERROR) << read_tensor_status;
     return -1;
   }
-  const Tensor& resized_tensor = resized_tensors[0];
+  const Tensor &resized_tensor = resized_tensors[0];
 
   // Actually run the image through the model.
   std::vector<Tensor> outputs;
   Status run_status = session->Run({{input_layer, resized_tensor}},
                                    {output_layer}, {}, &outputs);
-  if (!run_status.ok()) {
+  if (!run_status.ok())
+  {
     LOG(ERROR) << "Running model failed: " << run_status;
     return -1;
   }
@@ -362,14 +389,17 @@ int main(int argc, char* argv[]) {
   // This is for automated testing to make sure we get the expected result with
   // the default settings. We know that label 653 (military uniform) should be
   // the top label for the Admiral Hopper image.
-  if (self_test) {
+  if (self_test)
+  {
     bool expected_matches;
     Status check_status = CheckTopLabel(outputs, 653, &expected_matches);
-    if (!check_status.ok()) {
+    if (!check_status.ok())
+    {
       LOG(ERROR) << "Running check failed: " << check_status;
       return -1;
     }
-    if (!expected_matches) {
+    if (!expected_matches)
+    {
       LOG(ERROR) << "Self-test failed!";
       return -1;
     }
@@ -377,7 +407,8 @@ int main(int argc, char* argv[]) {
 
   // Do something interesting with the results we've generated.
   Status print_status = PrintTopLabels(outputs, labels);
-  if (!print_status.ok()) {
+  if (!print_status.ok())
+  {
     LOG(ERROR) << "Running print failed: " << print_status;
     return -1;
   }

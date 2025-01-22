@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
     gnuplot \
     libboost-all-dev \
     libx11-dev \
+    gdb \
     sudo \
     && rm -rf /var/lib/apt/lists/*
 
