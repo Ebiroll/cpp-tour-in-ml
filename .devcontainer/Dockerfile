@@ -18,11 +18,9 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Add a user with the specified UID and username
-#RUN useradd --no-log-init -m -u ${USER_ID} -s /bin/bash ${USER_NAME} && \
+#RUN groupadd --gid ${USER_ID} ${USER_NAME} || true && \
+#    useradd --no-log-init --uid ${USER_ID} --gid ${USER_ID} --shell /bin/bash --create-home ${USER_NAME} && \
 #    echo "${USER_NAME} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
-RUN groupadd --gid ${USER_ID} ${USER_NAME} || true && \
-    useradd --no-log-init --uid ${USER_ID} --gid ${USER_ID} --shell /bin/bash --create-home ${USER_NAME} && \
-    echo "${USER_NAME} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 # Switch to the new user
 USER ${USER_NAME}
