@@ -70,6 +70,51 @@ target_link_libraries(tf_sine_example PRIVATE ${TENSORFLOW_LIB} ${FRAMEWORK_LIB}
 add_executable(label_image label_image/main.cc)
 target_link_libraries(label_image PRIVATE ${TENSORFLOW_LIB} ${FRAMEWORK_LIB}  ${GNUPLOT_IOSTREAM_LIBRARIES})
 
+# Fetch Eigen with ExternalProject
+##########################################
+
+include(ExternalProject)
+
+set(EIGEN_INSTALL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/eigen-install/")
+
+ExternalProject_Add(
+    eigen
+    URL  https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
+    SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/eigen-src"
+    BINARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/eigen-build"
+    INSTALL_DIR "${EIGEN_INSTALL_DIR}"
+    CMAKE_ARGS
+    -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
+    -DCMAKE_BUILD_TYPE=Release
+)
+
+file(MAKE_DIRECTORY ${EIGEN_INSTALL_DIR}/include)  # avoid race condition
+
+add_library(eigenlib INTERFACE IMPORTED GLOBAL)
+add_dependencies(eigenlib eigen)
+target_compile_features(eigenlib INTERFACE cxx_std_14)
+
+set_target_properties(eigenlib PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES ${EIGEN_INSTALL_DIR}/include/eigen3
+)
+#####################################
+
+
+
+#add_library(linalg INTERFACE)
+
+#target_include_directories(linalg
+#    INTERFACE 
+#    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+#    $<INSTALL_INTERFACE:include>)
+
+add_executable(simple_nn eigen/simple_nn.cpp)
+
+
+target_link_libraries(simple_nn INTERFACE eigenlib)
+
+
+
 
 
 # If needed, explicitly link or include for gnuplot-iostream:

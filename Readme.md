@@ -11,6 +11,21 @@ If you are not, you might want to edit the Dockerfile
    RUN useradd --no-log-init -m -u ${USER_ID} -s /bin/bash ${USER_NAME} && \
        echo "${USER_NAME} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
+This is the output you are looking for. 
+```
+________                               _______________
+___  __/__________________________________  ____/__  /________      __
+__  /  _  _ \_  __ \_  ___/  __ \_  ___/_  /_   __  /_  __ \_ | /| / /
+_  /   /  __/  / / /(__  )/ /_/ /  /   _  __/   _  / / /_/ /_ |/ |/ /
+/_/    \___//_/ /_//____/ \____//_/    /_/      /_/  \____/____/|__/
+
+
+You are running this container as user with ID 1000 and group 1000,
+which should map to the ID and group for your user on the Docker host. Great!
+```
+If you are having problems, try
+export USER_ID=$(id -u)
+
 
 # Another option
 I never tried this, but this like another reasonable path forward.

@@ -1,4 +1,7 @@
 build
+eigen-build
+eigen-install
+eigen-src
 
 # Prerequisites
 *.d
