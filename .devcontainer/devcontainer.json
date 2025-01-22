@@ -1,0 +1,35 @@
+{
+  "name": "TensorFlow C++ Dev Environment",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      "USER_ID": "${localEnv:USER_ID}",
+      "USER_NAME": "${localEnv:USER}"
+    }
+  },
+  "settings": {
+    "terminal.integrated.defaultProfile.linux": "bash",
+    "editor.formatOnSave": true
+  },
+  "extensions": [
+    "ms-vscode.cpptools",
+    "ms-vscode.cmake-tools",
+    "twxs.cmake",
+    "eamodio.gitlens",
+    "ms-python.python"
+  ],
+  "postCreateCommand": "git submodule update --init --recursive;sudo apt-get update && sudo apt-get install -y xauth x11-apps",
+  "remoteUser": "${localEnv:USER}",
+  "workspaceFolder": "/workspace",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "cmake.sourceDirectory": "/workspace"
+      }
+    }
+  }
+}
