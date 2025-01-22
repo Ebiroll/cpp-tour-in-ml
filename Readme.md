@@ -1,0 +1,117 @@
+
+Steps to build tensorflow and this example
+
+git submodule uodate --init --recursive
+
+
+# Another option
+I never tried this, but this like a reasonable path forward.
+
+https://github.com/FloopCZ/tensorflow_cc
+
+
+# Steps to build
+
+Clone the TensorFlow Repository:
+
+    git clone https://github.com/tensorflow/tensorflow/
+
+
+Check out 2.18:
+
+    I tried newer versions first but this worked for me on Ubuntu 22.04 after
+    sudo apt-get install g++-12 (You probably do not need this step. it was for headers, clang was used to compile tensorflow)
+    git checkout -b v2.18.0 
+
+Install dependencies:
+    sudo apt-get install build-essential cmake git curl zip unzip autoconf automake libtool  gcc g++
+    sudo apt install libboost-all-dev
+
+Bazel is used to build tensorflow
+
+    wget https://github.com/bazelbuild/bazelisk/releases/download/v1.25.0/bazelisk-linux-amd64
+    mv this to i.e. $HOME/bin/bazel if it is in your path
+
+
+Configure the Build Environment:
+
+    Run the ./configure script to set up the build environment, specifying appropriate options for your system.
+
+
+Build library
+    Executed the Bazel build command to compile the TensorFlow C++ library:
+
+bazel build --config=opt //tensorflow:libtensorflow_cc.so
+
+
+
+
+mkdir build
+cd build
+cmake ..
+make
+./tf_sine_example
+
+
+
+
+Some external libraries when building tensorflow, 
+
+ls bazel-bin/external/
+boringssl             com_google_protobuf        curl               fft2d        FXdiv        icu            llvm-project           nsync       png          snappy      upb
+com_github_grpc_grpc  com_googlesource_code_re2  double_conversion  flatbuffers  gif          jsoncpp_git    local_config_cuda      onednn      pthreadpool  stablehlo   XNNPACK
+com_google_absl       cpuinfo                    farmhash_archive   FP16         highwayhash  libjpeg_turbo  local_config_tensorrt  org_sqlite  ruy          tf_runtime  zlib
+
+Try builing headers,
+
+bazel build //tensorflow:install_headers
+
+
+# Compiling with conda
+
+As I had conda installed
+
+
+# Never to early to give up,
+Never got it to work so I switched to a Dockerfile
+
+docker build --build-arg USER_ID=$(id -u) --build-arg USER_NAME=$(whoami) -t tensorflow_cpp_env .
+
+
+'''
+xhost +local:docker
+docker run -it \
+    -e DISPLAY=$DISPLAY \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    -v $(pwd):/workspace \
+    --user $(id -u):$(id -g) \
+    tensorflow_cpp_env
+'''
+
+# Cleaning up the container
+   docker rmi tensorflow_cpp_env
+
+# bare metal
+
+Inspired by this article, 
+
+https://www.codeproject.com/Articles/1237026/Simple-MLP-Backpropagation-Artificial-Neural-Netwo
+
+
+
+'''
+     	Input Layer      	Hidden Layer (N neurons)        	Output Layer
+     	┌─────────┐      	 ┌────────────────────────┐      	┌──────────┐
+     	│     	  │      	│                    	  │      	│      	   │
+     	│         │  W[0]	│  c[0] + W[0]*x          │  V[0]	│      	   │
+     	│     	  ├──────────► (sigmoid activation)   ├──────────►         │
+     	│     	  │      	│                    	  │      	│      	   │
+     	│     	  │  W[1]	│  c[1] + W[1]*x     	  │  V[1]	│  Σ(V[i]  │
+     	│	x	  ├──────────► (sigmoid activation)   ├──────────► *h[i])+ │
+     	│     	  │      	│                    	  │         │	b 	   │
+     	│     	  │   ...	│      	...       	      │   ...   │      	   │
+     	│     	  │      	│                    	  │      	│      	   │
+     	│     	  │  W[N-1] │  c[N-1] + W[N-1]*x 	  │  V[N-1] │      	   │
+     	│     	  ├──────────► (sigmoid activation)   ├──────────►         │
+     	└─────────┘      	└────────────────────────┘      	└──────────┘
+'''
