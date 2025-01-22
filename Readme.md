@@ -6,6 +6,11 @@ git submodule update --init --recursive
 # Run in codespace
 I have set up the dockefile so that it should run in github codespaces
 
+If you are not, you might want to edit the Dockerfile
+// Add a user with the specified UID and username
+   RUN useradd --no-log-init -m -u ${USER_ID} -s /bin/bash ${USER_NAME} && \
+       echo "${USER_NAME} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
 
 # Another option
 I never tried this, but this like another reasonable path forward.
@@ -74,7 +79,7 @@ As I had conda installed
 
 Never got it to work so I switched to using a Dockerfile
 
-docker build --build-arg USER_ID=$(id -u) --build-arg USER_NAME=$(whoami) -t tensorflow_cpp_env .
+docker build --build-arg USER_ID=$(id -u) --build-arg USER_NAME=$(whoami) -t tensorflow_cpp_env .devcontainer/
 
 
 '''
