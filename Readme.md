@@ -87,7 +87,7 @@ bazel build //tensorflow:install_headers
 
 # Compiling with conda
 
-As I had conda installed
+As I had conda installed, I tried but never got it to work.
 
 
 # Never to early to give up,
@@ -147,3 +147,11 @@ Example from tensorflow codebase, it has its own Readme
 eigen/simple_nn.cpp
 
 Simple backpropagation network using Eigen
+
+https://medium.com/@chizy7/implementing-a-simple-neural-network-in-c-with-eigen-f555a664f7b8
+
+Implementing a neural network leraning Xor with  eigen
+
+eigen/main.cpp
+eigen/NeuralNetwork.cpp
+

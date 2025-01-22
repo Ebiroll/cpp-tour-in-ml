@@ -109,11 +109,12 @@ set_target_properties(eigenlib PROPERTIES
 #    $<INSTALL_INTERFACE:include>)
 
 add_executable(simple_nn eigen/simple_nn.cpp)
-
-
 target_link_libraries(simple_nn INTERFACE eigenlib)
 
 
+add_executable(xor eigen/main.cpp eigen/NeuralNetwork.cpp)
+target_link_libraries(xor INTERFACE eigenlib})
+target_include_directories(xor PRIVATE eigen)
 
 
 
@@ -122,9 +123,9 @@ target_link_libraries(simple_nn INTERFACE eigenlib)
 
 
 # Add this to a executable test-interactive gnuplot-iostream/example-interactive.cc
-add_executable(test-interactive gnuplot-iostream/example-interactive.cc)
-target_link_libraries(test-interactive PRIVATE ${GNUPLOT_IOSTREAM_LIBRARIES})
-target_include_directories(test-interactive PRIVATE ${GNUPLOT_IOSTREAM_INCLUDE_DIRS})
+#add_executable(test-interactive gnuplot-iostream/example-interactive.cc)
+#target_link_libraries(test-interactive PRIVATE ${GNUPLOT_IOSTREAM_LIBRARIES})
+#target_include_directories(test-interactive PRIVATE ${GNUPLOT_IOSTREAM_INCLUDE_DIRS})
 
 # Add this to a executable test-interactive gnuplot-iostream/example-interactive.cc
 #add_executable(test gnuplot-iostream/example.cc)
