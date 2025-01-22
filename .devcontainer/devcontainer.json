@@ -16,7 +16,8 @@
     "ms-vscode.cmake-tools",
     "twxs.cmake",
     "eamodio.gitlens",
-    "ms-python.python"
+    "ms-python.python",
+    "fizzybreezy.gnuplot"
   ],
   "postCreateCommand": "git submodule update --init --recursive;sudo apt-get update && sudo apt-get install -y xauth x11-apps",
   "remoteUser": "${localEnv:USER}",
