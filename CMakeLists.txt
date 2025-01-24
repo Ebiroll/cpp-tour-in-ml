@@ -122,12 +122,15 @@ target_include_directories(xor PRIVATE eigen)
 # e.g. target_include_directories(tf_sine_example PRIVATE /usr/include/gnuplot-iostream)
 
 
+
 # Add this to a executable test-interactive gnuplot-iostream/example-interactive.cc
 #add_executable(test-interactive gnuplot-iostream/example-interactive.cc)
 #target_link_libraries(test-interactive PRIVATE ${GNUPLOT_IOSTREAM_LIBRARIES})
 #target_include_directories(test-interactive PRIVATE ${GNUPLOT_IOSTREAM_INCLUDE_DIRS})
 
-# Add this to a executable test-interactive gnuplot-iostream/example-interactive.cc
+
+# Add sin/bare_metal.cpp
+add_executable(bare_metal sin/bare_metal.cpp)
 #add_executable(test gnuplot-iostream/example.cc)
 #target_link_libraries(test PRIVATE ${GNUPLOT_IOSTREAM_LIBRARIES})
 #target_include_directories(test PRIVATE ${GNUPLOT_IOSTREAM_INCLUDE_DIRS})
