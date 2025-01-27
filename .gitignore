@@ -2,6 +2,8 @@ build
 eigen-build
 eigen-install
 eigen-src
+skynet/cmake-3.31.5-linux-x86_64
+skynet/build
 
 # Prerequisites
 *.d
