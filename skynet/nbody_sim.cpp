@@ -10,6 +10,7 @@
 #include <websocket.h>
 #include <stdexec/execution.hpp>
 #include <exec/static_thread_pool.hpp>
+#include <cmath> // For std::sqrt
 
 // Include the provided WebSocket code here (omitted for brevity)
 
@@ -20,9 +21,12 @@ struct Body {
     double ax, ay, az;
 };
 
+
+std::vector<Body> bodies_;
+
 class Simulation {
 public:
-    #include <cmath> // For std::sqrt
+
 
 Simulation() {
     const double G = 6.67430e-11;  // Gravitational constant
@@ -250,7 +254,6 @@ Simulation() {
 
 private:
     mutable std::mutex mutex_;
-    std::vector<Body> bodies_;
 };
 
 
@@ -518,6 +521,82 @@ int main() {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
     });
+    #if 0
+    exec::static_thread_pool pool(4);
+    // stdexec::scheduler auto sched = stdexec::thread_pool().scheduler();
+    auto sched = pool.get_scheduler();
+
+    std::thread execThread([&](){
+        const double G = 6.67430e-11;  // Gravitational constant
+        while (running) {
+            // Step the simulation
+            for (int i = 0; i < 30000; ++i) {
+
+                // Reset accelerations
+                for (auto& body : bodies_) {
+                    body.ax = body.ay = body.az = 0.0;
+                }
+                double dt = 4.0;
+
+                // Calculate forces in parallel for each i
+                // 
+                std::vector<stdexec::sender auto> force_senders;
+                for (size_t i = 0; i < bodies_.size(); ++i) {                    
+                    force_senders.emplace_back(
+                        stdexec::just(i) | 
+                        stdexec::then([this, G](size_t i) {
+                            for (size_t j = i + 1; j < bodies_.size(); ++j) {
+                                Body& a = bodies_[i];
+                                Body& b = bodies_[j];
+                                double dx = b.x - a.x;
+                                double dy = b.y - a.y;
+                                double dz = b.z - a.z;
+                                double dist = std::sqrt(dx*dx + dy*dy + dz*dz);
+                                double F = G * a.m * b.m / (dist*dist + 1e-10);
+                                double Fx = F * dx / dist;
+                                double Fy = F * dy / dist;
+                                double Fz = F * dz / dist;
+
+                                a.ax += Fx / a.m;
+                                a.ay += Fy / a.m;
+                                a.az += Fz / a.m;
+                                b.ax -= Fx / b.m;
+                                b.ay -= Fy / b.m;
+                                b.az -= Fz / b.m;
+                            }
+                        }) | stdexec::on(sched)
+                    );
+                }
+
+                stdexec::sync_wait(stdexec::when_all(std::move(force_senders))).value();
+
+                // Update velocities and positions
+                for (auto& body : bodies_) {
+                    body.vx += body.ax * dt;
+                    body.vy += body.ay * dt;
+                    body.vz += body.az * dt;
+                    body.x += body.vx * dt + 0.5 * body.ax * dt * dt;
+                    body.y += body.vy * dt + 0.5 * body.ay * dt * dt;
+                    body.z += body.vz * dt + 0.5 * body.az * dt * dt;
+                }
+            }
+
+            // Serialize
+            auto bodies = simulation_.getBodies();
+            std::string json = serializeBodies(bodies);
+
+            // Broadcast
+            server.broadcast(json);
+
+            // Sleep a bit so we don’t spam
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+    });
+    #endif
+
+
+
+
 
     server.run();
 
