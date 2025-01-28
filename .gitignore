@@ -3,6 +3,7 @@ eigen-build
 eigen-install
 eigen-src
 skynet/cmake-3.31.5-linux-x86_64
+skynet/cmake-3.31.5-linux-x86_64.tar.gz
 skynet/build
 
 # Prerequisites
@@ -37,3 +38,5 @@ skynet/build
 *.exe
 *.out
 *.app
+skynet/cmake-3.31.5-linux-x86_64.tar.gz
+skynet/compile_commands.json
