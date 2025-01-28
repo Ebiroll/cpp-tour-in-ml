@@ -40,6 +40,11 @@ CPMAddPackage(
 
 include_directories(.)
 
-add_executable(main skynet.cpp nbody_sim.cpp)
+add_executable(skynet skynet.cpp)
 
-target_link_libraries(main STDEXEC::stdexec)
+add_executable(nbody nbody_sim.cpp)
+
+
+target_link_libraries(nbody STDEXEC::stdexec)
+
+target_link_libraries(skynet STDEXEC::stdexec)
