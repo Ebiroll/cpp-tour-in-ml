@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>N-Body Simulation Control</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #1a1a1a;
+            color: #fff;
+            display: flex;
+            gap: 20px;
+            height: calc(100vh - 40px);
+        }
+        #left-panel {
+            flex: 1;
+            max-width: 50%;
+            display: flex;
+            flex-direction: column;
+        }
+        #visualization {
+            flex: 1;
+            background-color: #000;
+            border-radius: 5px;
+        }
+        #controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #2a2a2a;
+            border-radius: 5px;
+        }
+        button {
+            padding: 8px 15px;
+            margin: 5px;
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #status {
+            margin-bottom: 10px;
+            padding: 5px;
+        }
+        #output {
+            white-space: pre-wrap;
+            font-family: monospace;
+            background-color: #000;
+            padding: 10px;
+            border-radius: 5px;
+            flex: 1;
+            overflow-y: auto;
+        }
+        .log {
+            color: #888;
+            margin: 2px 0;
+        }
+        .sent {
+            color: #4CAF50;
+        }
+        .received {
+            color: #2196F3;
+        }
+    </style>
+</head>
+<body>
+    <div id="left-panel">
+        <div id="controls">
+            <h2>N-Body Simulation Controls</h2>
+            <div id="status">Connecting to WebSocket...</div>
+            <button onclick="sendCommand('add')">Add Body</button>
+            <button onclick="sendCommand('remove')">Remove Last Body</button>
+            <button onclick="sendCommand('force')">Force First Body</button>
+        </div>
+        <div id="output"></div>
+    </div>
+    <canvas id="visualization"></canvas>
+
+    <script>
+        let ws;
+        const output = document.getElementById('output');
+        const status = document.getElementById('status');
+        const canvas = document.getElementById('visualization');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function drawArrow(ctx, fromX, fromY, toX, toY) {
+            const headLength = 10;
+            const dx = toX - fromX;
+            const dy = toY - fromY;
+            const angle = Math.atan2(dy, dx);
+            
+            ctx.beginPath();
+            ctx.moveTo(fromX, fromY);
+            ctx.lineTo(toX, toY);
+            ctx.strokeStyle = '#ff0000';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(toX, toY);
+            ctx.lineTo(toX - headLength * Math.cos(angle - Math.PI/6), 
+                      toY - headLength * Math.sin(angle - Math.PI/6));
+            ctx.lineTo(toX - headLength * Math.cos(angle + Math.PI/6), 
+                      toY - headLength * Math.sin(angle + Math.PI/6));
+            ctx.closePath();
+            ctx.fillStyle = '#ff0000';
+            ctx.fill();
+        }
+
+        function drawBodies(bodies) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (bodies.length === 0) return;
+
+            let minX = Infinity, maxX = -Infinity;
+            let minY = Infinity, maxY = -Infinity;
+
+            bodies.forEach(body => {
+                minX = Math.min(minX, body.x);
+                maxX = Math.max(maxX, body.x);
+                minY = Math.min(minY, body.y);
+                maxY = Math.max(maxY, body.y);
+            });
+
+            const padding = Math.max((maxX - minX) * 0.1, 100);
+            minX -= padding;
+            maxX += padding;
+            minY -= padding;
+            maxY += padding;
+
+            const scaleX = canvas.width / (maxX - minX || 1);
+            const scaleY = canvas.height / (maxY - minY || 1);
+            const scale = Math.min(scaleX, scaleY);
+
+            const offsetX = -minX * scale + (canvas.width - (maxX - minX) * scale) / 2;
+            const offsetY = -minY * scale + (canvas.height - (maxY - minY) * scale) / 2;
+
+            bodies.forEach(body => {
+                const x = body.x * scale + offsetX;
+                const y = body.y * scale + offsetY;
+                const radius = Math.min(50, Math.max(5, Math.sqrt(body.m) * 0.3));
+
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fillStyle = '#fff';
+                ctx.fill();
+
+                if (body.vx !== 0 || body.vy !== 0) {
+                    const vScale = 20;
+                    drawArrow(ctx, x, y, 
+                             x + body.vx * vScale * scale, 
+                             y + body.vy * vScale * scale);
+                }
+            });
+        }
+
+        function connect() {
+            ws = new WebSocket('ws://127.0.0.1:1234');
+
+            ws.onopen = () => {
+                status.innerHTML = 'Connected!';
+                status.style.color = '#4CAF50';
+                log('Connected to WebSocket server', 'system');
+            };
+
+            ws.onmessage = (event) => {
+                log(`Received: ${event.data}`, 'received');
+                try {
+                    const bodies = JSON.parse(event.data);
+                    drawBodies(bodies);
+                } catch (e) {
+                    log('Error parsing data: ' + e.message, 'error');
+                }
+            };
+
+            ws.onclose = () => {
+                status.innerHTML = 'Disconnected';
+                status.style.color = '#f44336';
+                log('Connection closed', 'system');
+                setTimeout(connect, 1000);
+            };
+
+            ws.onerror = (error) => {
+                log(`WebSocket Error: ${error}`, 'error');
+            };
+        }
+
+        function sendCommand(command) {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                log('Not connected to server', 'error');
+                return;
+            }
+
+            let message = command;
+            if (command === 'force') {
+                const x = prompt('Enter X position:', '0');
+                const y = prompt('Enter Y position:', '0');
+                const z = prompt('Enter Z position:', '0');
+                message = `force ${x} ${y} ${z}`;
+            }
+
+            ws.send(message);
+            log(`Sent: ${message}`, 'sent');
+        }
+
+        function log(message, type = 'system') {
+            const entry = document.createElement('div');
+            entry.className = `log ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            output.appendChild(entry);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        connect();
+    </script>
+</body>
+</html>

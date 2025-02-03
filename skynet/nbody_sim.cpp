@@ -10,6 +10,7 @@
 #include <websocket.h>
 #include <stdexec/execution.hpp>
 #include <exec/static_thread_pool.hpp>
+#include <cmath> // For std::sqrt
 
 // Include the provided WebSocket code here (omitted for brevity)
 
@@ -20,9 +21,127 @@ struct Body {
     double ax, ay, az;
 };
 
+
+std::vector<Body> bodies_;
+
 class Simulation {
 public:
-    // Realistic initial setup for Earth-like orbit
+
+
+Simulation() {
+    const double G = 6.67430e-11;  // Gravitational constant
+    const double AU = 1.496e11;    // 1 astronomical unit in meters
+    const double mass_base = 1e28; // Base mass (similar to small stars)
+    
+    // Common velocity magnitude calculation
+    auto calc_velocity = [&](double m1, double m2, double distance) {
+        return std::sqrt(G * (m1 + m2) / distance);
+    };
+
+    // Triple star system with chaotic initial conditions
+    Body star1, star2, star3;
+    
+    // Mass configuration (similar but not identical)
+    star1.m = mass_base * 1.0;
+    star2.m = mass_base * 0.9;
+    star3.m = mass_base * 1.1;
+
+    // Initial positions (triangular configuration)
+    star1.x =  AU * 0.5;
+    star1.y = -AU * 0.3;
+    star2.x = -AU * 0.4;
+    star2.y =  AU * 0.6;
+    star3.x =  AU * 0.2;
+    star3.y =  AU * 0.1;
+
+    // Velocity configuration (non-symmetric, non-orbital)
+    const double speed_base = 1e3; // 10 km/s base speed
+    star1.vx =  speed_base * 0.7;
+    star1.vy = -speed_base * 1.1;
+    star2.vx = -speed_base * 0.9;
+    star2.vy =  speed_base * 0.8;
+    star3.vx =  speed_base * 1.2;
+    star3.vy =  speed_base * 0.4;
+
+    // Center-of-mass correction
+    const double total_mass = star1.m + star2.m + star3.m;
+    const double com_vx = (star1.m*star1.vx + star2.m*star2.vx + star3.m*star3.vx) / total_mass;
+    const double com_vy = (star1.m*star1.vy + star2.m*star2.vy + star3.m*star3.vy) / total_mass;
+    
+    // Adjust velocities to maintain system in view
+    star1.vx -= com_vx;
+    star1.vy -= com_vy;
+    star2.vx -= com_vx;
+    star2.vy -= com_vy;
+    star3.vx -= com_vx;
+    star3.vy -= com_vy;
+
+    bodies_.push_back(star1);
+    bodies_.push_back(star2);
+    bodies_.push_back(star3);
+}
+
+# if 0    
+
+Simulation() {
+    const double G = 6.67430e-11;  // Gravitational constant
+    const double AU = 1.496e11;    // Astronomical unit in meters
+    
+    // Create Sun
+    Body sun;
+    sun.m = 1.989e30;
+    sun.x = 0;
+    sun.y = 0;
+    bodies_.push_back(sun);
+
+    // Helper function to create planets
+    auto createPlanet = [&](double mass, double au_distance, double orbital_speed) {
+        Body planet;
+        planet.m = mass;
+        planet.x = au_distance * AU;  // Place along x-axis
+        planet.vy = orbital_speed;    // Initial tangential velocity
+        return planet;
+    };
+
+    // Add inner planets (approximate values)
+    bodies_.push_back(createPlanet(
+        3.301e23,   // Mercury mass
+        0.387,      // AU distance
+        std::sqrt(G * sun.m / (0.387 * AU))  // Orbital velocity
+    ));
+
+    bodies_.push_back(createPlanet(
+        4.867e24,   // Venus mass
+        0.723,      // AU distance
+        std::sqrt(G * sun.m / (0.723 * AU))  // ~35,000 m/s
+    ));
+
+    // Add outer planets
+    bodies_.push_back(createPlanet(
+        5.972e24,   // Earth mass
+        1.0,        // AU distance
+        std::sqrt(G * sun.m / (1.0 * AU))    // ~29,780 m/s
+    ));
+
+    bodies_.push_back(createPlanet(
+        6.417e23,   // Mars mass
+        1.524,      // AU distance
+        std::sqrt(G * sun.m / (1.524 * AU))  // ~24,100 m/s
+    ));
+
+    // Add outer gas giants
+    bodies_.push_back(createPlanet(
+        1.898e27,   // Jupiter mass
+        5.203,      // AU distance
+        std::sqrt(G * sun.m / (5.203 * AU))  // ~13,060 m/s
+    ));
+
+    bodies_.push_back(createPlanet(
+        5.683e26,   // Saturn mass
+        9.537,      // AU distance
+        std::sqrt(G * sun.m / (9.537 * AU))  // ~9,680 m/s
+    ));
+}
     Simulation() {
         Body sun;
         sun.m = 1.989e30;
@@ -35,7 +154,7 @@ public:
         earth.vy = 2.978e4; // Orbital velocity
         bodies_.push_back(earth);
     };
-
+#endif
 
     void addBody(const Body& body) {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -135,7 +254,6 @@ public:
 
 private:
     mutable std::mutex mutex_;
-    std::vector<Body> bodies_;
 };
 
 
@@ -388,8 +506,8 @@ int main() {
     std::thread simThread([&](){
         while (running) {
             // Step the simulation
-            for (int i = 0; i < 20000; ++i) {
-                simulation_.step(10.0);
+            for (int i = 0; i < 30000; ++i) {
+                simulation_.step(4.0);
             }
 
             // Serialize
@@ -400,9 +518,85 @@ int main() {
             server.broadcast(json);
 
             // Sleep a bit so we don’t spam
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
     });
+    #if 0
+    exec::static_thread_pool pool(4);
+    // stdexec::scheduler auto sched = stdexec::thread_pool().scheduler();
+    auto sched = pool.get_scheduler();
+
+    std::thread execThread([&](){
+        const double G = 6.67430e-11;  // Gravitational constant
+        while (running) {
+            // Step the simulation
+            for (int i = 0; i < 30000; ++i) {
+
+                // Reset accelerations
+                for (auto& body : bodies_) {
+                    body.ax = body.ay = body.az = 0.0;
+                }
+                double dt = 4.0;
+
+                // Calculate forces in parallel for each i
+                // 
+                std::vector<stdexec::sender auto> force_senders;
+                for (size_t i = 0; i < bodies_.size(); ++i) {                    
+                    force_senders.emplace_back(
+                        stdexec::just(i) | 
+                        stdexec::then([this, G](size_t i) {
+                            for (size_t j = i + 1; j < bodies_.size(); ++j) {
+                                Body& a = bodies_[i];
+                                Body& b = bodies_[j];
+                                double dx = b.x - a.x;
+                                double dy = b.y - a.y;
+                                double dz = b.z - a.z;
+                                double dist = std::sqrt(dx*dx + dy*dy + dz*dz);
+                                double F = G * a.m * b.m / (dist*dist + 1e-10);
+                                double Fx = F * dx / dist;
+                                double Fy = F * dy / dist;
+                                double Fz = F * dz / dist;
+
+                                a.ax += Fx / a.m;
+                                a.ay += Fy / a.m;
+                                a.az += Fz / a.m;
+                                b.ax -= Fx / b.m;
+                                b.ay -= Fy / b.m;
+                                b.az -= Fz / b.m;
+                            }
+                        }) | stdexec::on(sched)
+                    );
+                }
+
+                stdexec::sync_wait(stdexec::when_all(std::move(force_senders))).value();
+
+                // Update velocities and positions
+                for (auto& body : bodies_) {
+                    body.vx += body.ax * dt;
+                    body.vy += body.ay * dt;
+                    body.vz += body.az * dt;
+                    body.x += body.vx * dt + 0.5 * body.ax * dt * dt;
+                    body.y += body.vy * dt + 0.5 * body.ay * dt * dt;
+                    body.z += body.vz * dt + 0.5 * body.az * dt * dt;
+                }
+            }
+
+            // Serialize
+            auto bodies = simulation_.getBodies();
+            std::string json = serializeBodies(bodies);
+
+            // Broadcast
+            server.broadcast(json);
+
+            // Sleep a bit so we don’t spam
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+    });
+    #endif
+
+
+
+
 
     server.run();
 
