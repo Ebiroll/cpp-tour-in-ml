@@ -155,3 +155,11 @@ Implementing a neural network leraning Xor with  eigen
 eigen/main.cpp
 eigen/NeuralNetwork.cpp
 
+# skynet
+Testing with a n-body simulation
+
+# httpserver
+Senders example from net29
+https://github.com/bemanproject/net
+
+Senders For Network Operations
