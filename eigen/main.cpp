@@ -26,6 +26,10 @@ int main()
         {
             nn.train(inputs[i], targets[i]);
         }
+        if (epoch % 1000 == 0)
+        {
+            std::cout << "epoch " << epoch << " loss " << nn.last_epoch_loss() << std::endl;
+        }
     }
 
     // Test the network

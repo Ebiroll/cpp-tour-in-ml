@@ -4,19 +4,28 @@
 #include <Eigen/Dense>
 #include <vector>
 
-class NeuralNetwork {
+class NeuralNetwork
+{
 public:
-    enum Activation { TANH, SIGMOID };
+    enum Activation
+    {
+        TANH,
+        SIGMOID
+    };
 
-    NeuralNetwork(const std::vector<int>& architecture,
+    NeuralNetwork(const std::vector<int> &architecture,
                   double learningRate = 0.01,
                   Activation activation = TANH);
 
-    void train(const Eigen::VectorXd& input, const Eigen::VectorXd& target);
-    Eigen::VectorXd predict(const Eigen::VectorXd& input);
+    void train(const Eigen::VectorXd &input, const Eigen::VectorXd &target);
+    Eigen::VectorXd predict(const Eigen::VectorXd &input);
+    double last_epoch_loss() const;
+
+    void visualize_weights() const;
 
 private:
     double mLearningRate;
+    double mLastEpochLoss;
     Activation mActivation;
     std::vector<int> mArchitecture;
     std::vector<Eigen::VectorXd> mNeurons;
@@ -24,8 +33,8 @@ private:
     std::vector<Eigen::MatrixXd> mWeights;
 
     void initializeWeights();
-    void forward(const Eigen::VectorXd& input);
-    void backward(const Eigen::VectorXd& target);
+    void forward(const Eigen::VectorXd &input);
+    void backward(const Eigen::VectorXd &target);
     double activation(double x);
     double activationDerivative(double x);
 };

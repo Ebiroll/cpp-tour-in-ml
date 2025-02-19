@@ -23,6 +23,7 @@ public:
     void Feedforward();
     void BackPropagation(double epsilon);
     Eigen::VectorXd predicted_output;
+    void visualize_weights() const;
 
 private:
     double GetLossValue() const;
@@ -70,13 +71,18 @@ double NeuralNetwork::GetLossValue() const
     Eigen::VectorXd loss_vector = real_output_ - predicted_output;
     loss_vector = loss_vector.array().square();
     double loss_value = loss_vector.sum();
-    if (loss_call_times_++ % 100 == 0)
+    if (loss_call_times_++ % 1000 == 0)
     {
         std::cout << "Loss value: " << loss_value << std::endl;
     }
     return loss_value;
 }
 
+void NeuralNetwork::visualize_weights() const
+{
+    std::cout << "layer 1 weights:\n " << weights_1_ << std::endl;
+    std::cout << "layer 2 weights:\n " << weights_2_ << std::endl;
+}
 void NeuralNetwork::BackPropagation(double epsilon)
 {
     // Calculate the loss and gradients
@@ -98,19 +104,19 @@ void NeuralNetwork::BackPropagation(double epsilon)
 int main()
 {
     const uint32_t num_samples = 4;
-    const uint32_t num_features = 3;
+    const uint32_t num_features = 2;
     Eigen::MatrixXd input(num_samples, num_features);
-    input << 0.0, 0.0, 1.0,
-        0.0, 1.0, 1.0,
-        1.0, 0.0, 1.0,
-        1.0, 1.0, 1.0;
+    input << 0.0, 0.0,
+        0.0, 1.0,
+        1.0, 0.0,
+        1.0, 1.0;
     Eigen::VectorXd output(num_samples);
-    output << 0, 1, 0, 1;
+    output << 0, 1, 1, 0;
 
     NeuralNetwork net(input, output);
 
-    double epsilon = 0.03;
-    for (int i = 0; i < 1500; i++)
+    double epsilon = 0.05;
+    for (int i = 0; i < 10000; i++)
     {
         net.Feedforward();
         net.BackPropagation(epsilon);
@@ -121,5 +127,11 @@ int main()
 
     std::cout << "Predicted output:\n"
               << net.predicted_output << std::endl;
+
+    // Input dummy before pinting weights
+    std::cout << "Press any key to visualize weights" << std::endl;
+    std::cin.get();
+    net.visualize_weights();
+
     return 0;
 }

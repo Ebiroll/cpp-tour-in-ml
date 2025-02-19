@@ -5,6 +5,9 @@ eigen-src
 skynet/cmake-3.31.5-linux-x86_64
 skynet/cmake-3.31.5-linux-x86_64.tar.gz
 skynet/build
+tensorflow/*
+gnuplot/*
+gnuplot-iostream/*
 
 # Prerequisites
 *.d
