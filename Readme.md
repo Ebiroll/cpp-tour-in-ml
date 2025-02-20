@@ -163,3 +163,7 @@ Senders example from net29
 https://github.com/bemanproject/net
 
 Senders For Network Operations
+
+# Deep learning examples
+Here are many examples of deep learning models
+https://github.com/rasbt/deeplearning-models
