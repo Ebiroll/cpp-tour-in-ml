@@ -117,37 +117,36 @@ public:
         const double AU = 1.496e11;    // 1 astronomical unit in meters
         const double mass_base = 1e28; // Base mass (similar to small stars)
         
+        // Common velocity magnitude calculation
+        auto calc_velocity = [&](double m1, double m2, double distance) {
+            return std::sqrt(G * (m1 + m2) / distance);
+        };
+    
         // Triple star system with chaotic initial conditions
         Body star1, star2, star3;
         
         // Mass configuration (similar but not identical)
-        star1.m = mass_base * 1.0;
-        star2.m = mass_base * 0.9;
-        star3.m = mass_base * 1.1;
-
+        star1.m = mass_base * 0.5;
+        star2.m = mass_base * 0.6;
+        star3.m = mass_base * 0.7;
+    
         // Initial positions (triangular configuration)
-        star1.x =  AU * 0.5;
+        star1.x =  AU * 0.7;
         star1.y = -AU * 0.3;
-        star1.z = 0;
         star2.x = -AU * 0.4;
         star2.y =  AU * 0.6;
-        star2.z = 0;
         star3.x =  AU * 0.2;
         star3.y =  AU * 0.1;
-        star3.z = 0;
-
+    
         // Velocity configuration (non-symmetric, non-orbital)
         const double speed_base = 1e3; // 10 km/s base speed
-        star1.vx =  speed_base * 0.7;
-        star1.vy = -speed_base * 1.1;
-        star1.vz = 0;
-        star2.vx = -speed_base * 0.9;
-        star2.vy =  speed_base * 0.8;
-        star2.vz = 0;
-        star3.vx =  speed_base * 1.2;
-        star3.vy =  speed_base * 0.4;
-        star3.vz = 0;
-
+        star1.vx =  speed_base * 0.01;
+        star1.vy = -speed_base * 0.01;
+        star2.vx = -speed_base * 1.9;
+        star2.vy =  speed_base * 1.9;
+        star3.vx =  speed_base * 1.5;
+        star3.vy =  speed_base * 1.5;
+    
         // Center-of-mass correction
         const double total_mass = star1.m + star2.m + star3.m;
         const double com_vx = (star1.m*star1.vx + star2.m*star2.vx + star3.m*star3.vx) / total_mass;
@@ -160,12 +159,7 @@ public:
         star2.vy -= com_vy;
         star3.vx -= com_vx;
         star3.vy -= com_vy;
-
-        // Assign colors
-        star1.color = RED;
-        star2.color = BLUE;
-        star3.color = GOLD;
-
+    
         bodies_.push_back(star1);
         bodies_.push_back(star2);
         bodies_.push_back(star3);
@@ -229,10 +223,10 @@ public:
         
         // Random color
         body.color = Color{
+            255,
             static_cast<unsigned char>(rand() % 200 + 55),
             static_cast<unsigned char>(rand() % 200 + 55),
-            static_cast<unsigned char>(rand() % 200 + 55),
-            255
+            static_cast<unsigned char>(rand() % 200 + 55)            
         };
         
         bodies_.push_back(body);
@@ -302,6 +296,81 @@ public:
             body.y += body.vy * dt + 0.5 * body.ay * dt * dt;
             body.z += body.vz * dt + 0.5 * body.az * dt * dt;
         }
+        
+        // Check for collisions and handle mergers
+        handleCollisions();
+    }
+    
+    // NEW FUNCTION: Handle collisions between bodies
+    void handleCollisions() {
+        const double AU = 1.496e11;    // Astronomical unit in meters
+        // Collision threshold: fraction of an AU (adjustable)
+        const double collisionThreshold = 0.05 * AU; 
+        
+        // Use a flag to track if any collisions occurred
+        bool collisionOccurred = true;
+        
+        // Continue checking for collisions until no more are found in a pass
+        while (collisionOccurred && bodies_.size() > 1) {
+            collisionOccurred = false;
+            
+            for (size_t i = 0; i < bodies_.size(); ++i) {
+                for (size_t j = i + 1; j < bodies_.size(); ++j) {
+                    Body& a = bodies_[i];
+                    Body& b = bodies_[j];
+                    
+                    // Calculate distance between bodies
+                    double dx = b.x - a.x;
+                    double dy = b.y - a.y;
+                    double dz = b.z - a.z;
+                    double dist = std::sqrt(dx*dx + dy*dy + dz*dz);
+                    
+                    // Check if bodies are close enough to collide
+                    if (dist < collisionThreshold) {
+                        // Merge the bodies - conserve momentum (p = mv)
+                        double totalMass = a.m + b.m;
+                        
+                        // Calculate new velocities based on conservation of momentum
+                        double newVx = (a.m * a.vx + b.m * b.vx) / totalMass;
+                        double newVy = (a.m * a.vy + b.m * b.vy) / totalMass;
+                        double newVz = (a.m * a.vz + b.m * b.vz) / totalMass;
+                        
+                        // Calculate new position (mass-weighted center)
+                        double newX = (a.m * a.x + b.m * b.x) / totalMass;
+                        double newY = (a.m * a.y + b.m * b.y) / totalMass;
+                        double newZ = (a.m * a.z + b.m * b.z) / totalMass;
+                        
+                        // Update the first body with new properties
+                        a.m = totalMass;
+                        a.x = newX;
+                        a.y = newY;
+                        a.z = newZ;
+                        a.vx = newVx;
+                        a.vy = newVy;
+                        a.vz = newVz;
+                        
+                        // Mix colors (simple average)
+                        a.color.r = (a.color.r + b.color.r) / 2;
+                        a.color.g = (a.color.g + b.color.g) / 2;
+                        a.color.b = (a.color.b + b.color.b) / 2;
+                        
+                        // Remove the second body
+                        bodies_.erase(bodies_.begin() + j);
+                        
+                        // Flag that a collision occurred
+                        collisionOccurred = true;
+                        
+                        // Break out of inner loop since bodies_ size changed
+                        break;
+                    }
+                }
+                
+                // If a collision occurred, break out of outer loop too
+                if (collisionOccurred) {
+                    break;
+                }
+            }
+        }
     }
     
     std::vector<Body> getBodies() const {
@@ -324,7 +393,7 @@ bool showInfo = true;
 int currentSystem = 0; // 0 = Solar System, 1 = Triple Star
 
 // For tracking body positions for trails
-const int MAX_TRAIL_POINTS = 100;
+const int MAX_TRAIL_POINTS = 300;
 struct TrailPoint {
     Vector2 position;
     float alpha;
@@ -335,7 +404,7 @@ int main() {
     // Initialize window
     const int screenWidth = 1200;
     const int screenHeight = 800;
-    InitWindow(screenWidth, screenHeight, "N-Body Gravity Simulation");
+    InitWindow(screenWidth, screenHeight, "N-Body Gravity Simulation with Collisions");
     SetTargetFPS(60);
 
     // Create simulation
@@ -356,6 +425,10 @@ int main() {
     // Initialize trails vector
     auto bodies = simulation.getBodies();
     trails.resize(bodies.size());
+    
+    // Collision counter
+    int collisionCount = 0;
+    int previousBodyCount = bodies.size();
     
     // Main game loop
     while (!WindowShouldClose()) {
@@ -395,6 +468,10 @@ int main() {
             zoom = 1.0f;
             offsetX = 0.0f;
             offsetY = 0.0f;
+            
+            // Reset collision counter
+            collisionCount = 0;
+            previousBodyCount = bodies.size();
         }
         
         // Update simulation if not paused
@@ -407,9 +484,22 @@ int main() {
         // Get updated body positions
         bodies = simulation.getBodies();
         
+        // Check if a collision occurred by comparing body count
+        if (bodies.size() < previousBodyCount) {
+            collisionCount += (previousBodyCount - bodies.size());
+            previousBodyCount = bodies.size();
+        }
+        
         // Ensure trails vector size matches bodies
         if (trails.size() != bodies.size()) {
-            trails.resize(bodies.size());
+            // When bodies are merged, trails need to be adjusted
+            if (trails.size() > bodies.size()) {
+                // Bodies were removed - truncate trails
+                trails.resize(bodies.size());
+            } else {
+                // New bodies were added
+                trails.resize(bodies.size());
+            }
         }
         
         // Update trails
@@ -451,7 +541,7 @@ int main() {
         
         // Draw trails first (so they're behind the bodies)
         if (showTrails) {
-            for (size_t i = 0; i < bodies.size(); i++) {
+            for (size_t i = 0; i < bodies.size() && i < trails.size(); i++) {
                 Color trailColor = bodies[i].color;
                 
                 for (size_t j = 0; j < trails[i].size(); j++) {
@@ -500,16 +590,18 @@ int main() {
             DrawText(TextFormat("Bodies: %d", (int)bodies.size()), 10, 10, 20, WHITE);
             DrawText(TextFormat("Zoom: %.2f", zoom), 10, 35, 20, WHITE);
             DrawText(TextFormat("System: %s", currentSystem == 0 ? "Solar System" : "Triple Star"), 10, 60, 20, WHITE);
-            DrawText("Controls:", 10, 95, 20, WHITE);
-            DrawText("SPACE: Pause/Resume", 10, 120, 20, WHITE);
-            DrawText("A: Add Stable Body", 10, 145, 20, WHITE);
-            DrawText("R: Add Random Body", 10, 170, 20, WHITE);
-            DrawText("D: Remove Distant Body", 10, 195, 20, WHITE);
-            DrawText("T: Toggle Trails", 10, 220, 20, WHITE);
-            DrawText("I: Toggle Info", 10, 245, 20, WHITE);
-            DrawText("TAB: Switch System", 10, 270, 20, WHITE);
-            DrawText("Arrows/WASD: Pan", 10, 295, 20, WHITE);
-            DrawText("UP/DOWN: Zoom", 10, 320, 20, WHITE);
+            DrawText(TextFormat("Collisions: %d", collisionCount), 10, 85, 20, WHITE);
+            
+            DrawText("Controls:", 10, 120, 20, WHITE);
+            DrawText("SPACE: Pause/Resume", 10, 145, 20, WHITE);
+            DrawText("A: Add Stable Body", 10, 170, 20, WHITE);
+            DrawText("R: Add Random Body", 10, 195, 20, WHITE);
+            DrawText("D: Remove Distant Body", 10, 220, 20, WHITE);
+            DrawText("T: Toggle Trails", 10, 245, 20, WHITE);
+            DrawText("I: Toggle Info", 10, 270, 20, WHITE);
+            DrawText("TAB: Switch System", 10, 295, 20, WHITE);
+            DrawText("Arrows/WASD: Pan", 10, 320, 20, WHITE);
+            DrawText("UP/DOWN: Zoom", 10, 345, 20, WHITE);
         }
         
         EndDrawing();
